@@ -107,6 +107,7 @@ Webcam::Webcam(const string& device, int width, int height) :
     rgb_frame.size = xres * yres * 3;
     rgb_frame.data = (unsigned char *) malloc(rgb_frame.size * sizeof(char));
 
+    set_fps(60);
     start_capturing();
 }
 
@@ -152,6 +153,51 @@ const RGBImage& Webcam::frame(int timeout)
 
 }
 
+const buffer& Webcam::get_buffer(int timeout) {
+   for (;;) {
+        fd_set fds;
+        struct timeval tv;
+        int r;
+
+        FD_ZERO(&fds);
+        FD_SET(fd, &fds);
+
+        /* Timeout. */
+        tv.tv_sec = timeout;
+        tv.tv_usec = 0;
+
+        r = select(fd + 1, &fds, NULL, NULL, &tv);
+
+        if (-1 == r) {
+            if (EINTR == errno)
+                continue;
+            throw runtime_error("select");
+        }
+
+        if (0 == r) {
+            throw runtime_error(device + ": select timeout");
+        }
+        int buffers_idx;
+        if (read_buffer(buffers_idx)) {
+            return buffers[buffers_idx];
+        }
+        /* EAGAIN - continue select loop. */
+    }
+
+}
+
+
+void Webcam::set_fps(int fps) {
+    struct v4l2_streamparm parm;
+
+    parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+    parm.parm.capture.timeperframe.numerator = 1;
+    parm.parm.capture.timeperframe.denominator = fps;
+
+    int ret = xioctl(fd, VIDIOC_S_PARM, &parm);
+}
+
 bool Webcam::read_frame()
 {
 
@@ -180,11 +226,56 @@ bool Webcam::read_frame()
 
     assert(buf.index < n_buffers);
 
+    //printf("buf.index %d\n", buf.index);
+
     v4lconvert_yuyv_to_rgb24((unsigned char *) buffers[buf.index].data,
                              rgb_frame.data,
                              xres,
                              yres,
                              stride);
+
+    if (-1 == xioctl(fd, VIDIOC_QBUF, &buf))
+        throw runtime_error("VIDIOC_QBUF");
+
+    return true;
+}
+
+bool Webcam::read_buffer(int &idx)
+{
+
+    struct v4l2_buffer buf;
+    unsigned int i;
+
+    CLEAR(buf);
+
+    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buf.memory = V4L2_MEMORY_MMAP;
+
+    if (-1 == xioctl(fd, VIDIOC_DQBUF, &buf)) {
+        switch (errno) {
+            case EAGAIN:
+                return false;
+
+            case EIO:
+                /* Could ignore EIO, see spec. */
+
+                /* fall through */
+
+            default:
+                throw runtime_error("VIDIOC_DQBUF");
+        }
+    }
+
+    assert(buf.index < n_buffers);
+    idx = buf.index;
+
+    /*
+    v4lconvert_yuyv_to_rgb24((unsigned char *) buffers[buf.index].data,
+                             rgb_frame.data,
+                             xres,
+                             yres,
+                             stride);
+    */
 
     if (-1 == xioctl(fd, VIDIOC_QBUF, &buf))
         throw runtime_error("VIDIOC_QBUF");

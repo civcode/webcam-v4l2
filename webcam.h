@@ -37,7 +37,10 @@ public:
      *
      * Throws a runtime_error if the timeout is reached.
      */
-    const RGBImage& frame(int timeout = 1);
+    const RGBImage& frame(int timeout = 5);
+
+    const buffer& get_buffer(int timeout = 5);
+
 
 private:
     void init_mmap();
@@ -52,6 +55,9 @@ private:
     void stop_capturing();
 
     bool read_frame();
+    bool read_buffer(int &idx);
+
+    void set_fps(int fps);
 
     std::string device;
     int fd;
