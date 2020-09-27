@@ -2,7 +2,7 @@
 #include <fstream>
 
 #include <opencv2/opencv.hpp>
-#include <opencv2/cudaimgproc.hpp>
+//#include <opencv2/cudaimgproc.hpp>
 
 #include "webcam.h"
 
