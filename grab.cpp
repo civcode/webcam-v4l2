@@ -58,7 +58,7 @@ int main(int argc, char** argv)
 
     //std::cout << cv::getBuildInformation() << std::endl;
 
-    Webcam webcam("/dev/video0", XRES, YRES);
+    Webcam webcam("/dev/video2", XRES, YRES);
     auto frame = webcam.frame();
 
     auto *pt = frame.data;
@@ -77,11 +77,9 @@ int main(int argc, char** argv)
     cv::Mat out;
     
     cv::cvtColor(yuyv, out, cv::COLOR_YUV2BGR_YUYV);
-    /*
     cv::imshow("img", out);
-    cv::waitKey(0);
-    return 0;
-    */
+    cv::waitKey(100);
+    //return 0;
 
     /* working code
     cv::cuda::GpuMat src, dst;
@@ -91,7 +89,7 @@ int main(int argc, char** argv)
     dst.download(out);
     */
     unsigned char rgb[640*480*3];
-    while (true) { 
+    while (false) { 
       buffer = webcam.get_buffer();
       buffer_ptr = buffer.data;
       auto start = chrono::high_resolution_clock::now();
@@ -111,7 +109,7 @@ int main(int argc, char** argv)
       cv::Mat tmp;
       yuyv.copyTo(tmp);
     }
-    while (true) { 
+    while (false) { 
       auto start = chrono::high_resolution_clock::now();
       frame = webcam.frame();
       auto stop = chrono::high_resolution_clock::now();
