@@ -81,6 +81,9 @@ int main(int argc, char** argv)
     }
     
     /* use image buffer and OpenCV color conversion */
+    //
+    // => opencv is much more efficient! (~0.5 x cpu compared to webcam.cpp)
+    //
     auto buffer = webcam.get_buffer();
     //auto *buffer_ptr = buffer.data;
     char* buf = new char[buffer.size]; 

@@ -115,7 +115,7 @@ Webcam::Webcam(const string& device, int width, int height) :
     rgb_frame.size = xres * yres * 3;
     rgb_frame.data = (unsigned char *) malloc(rgb_frame.size * sizeof(char));
 
-    set_fps(30);
+    set_fps(60);
     start_capturing();
 }
 
