@@ -10,7 +10,7 @@
 
 #define XRES 640
 #define YRES 480
-//#define FPS 60
+#define FPS 30
 
 using namespace std;
 
@@ -58,30 +58,56 @@ int main(int argc, char** argv)
 
     //std::cout << cv::getBuildInformation() << std::endl;
 
-    Webcam webcam("/dev/video0", XRES, YRES);
-    auto frame = webcam.frame();
-
-    auto *pt = frame.data;
-    //cv::Mat img(YRES, XRES, CV_8UC3,  frame.data);
-    cv::Mat img(YRES, XRES, CV_8UC3,  pt);
-    
-    
-    auto buffer = webcam.get_buffer();
-    auto *buffer_ptr = buffer.data;
-
-    cv::Mat yuyv(YRES, XRES, CV_8UC2, buffer_ptr);
+    Webcam webcam("/dev/video2", XRES, YRES);
     
     cv::namedWindow("img", 1);
 
+    /* user the webcam.cpp implementation for color conversion */
+    auto frame = webcam.frame();
+
+    //auto *pt = frame.data;
+    //cv::Mat img(YRES, XRES, CV_8UC3,  pt);
+    cv::Mat img(YRES, XRES, CV_8UC3,  frame.data);
     
+    std::cout << "using webcam.cpp implementation for color conversion\n";
+    while (int k = cv::waitKey(1) != 'q') {
+      auto start = chrono::high_resolution_clock::now();
+      frame = webcam.frame();
+
+      auto stop = chrono::high_resolution_clock::now();
+      auto duration = chrono::duration_cast<chrono::microseconds>(stop-start);
+      cout << "dt = " << std::fixed << std::setprecision(3) << duration.count()/1000.0f << endl;
+      cv::imshow("img", img);
+    }
+    
+    /* use image buffer and OpenCV color conversion */
+    auto buffer = webcam.get_buffer();
+    //auto *buffer_ptr = buffer.data;
+    char* buf = new char[buffer.size]; 
+
     cv::Mat out;
+    //cv::Mat yuyv(YRES, XRES, CV_8UC2, buffer.data);
+    cv::Mat yuyv(YRES, XRES, CV_8UC2, buf);
     
-    cv::cvtColor(yuyv, out, cv::COLOR_YUV2BGR_YUYV);
-    /*
-    cv::imshow("img", out);
-    cv::waitKey(0);
+    //cv::cvtColor(yuyv, out, cv::COLOR_YUV2BGR_YUYV);
+
+    std::cout << "using OpenCV implementation for color conversion\n";
+
+    while (int k = cv::waitKey(1) != 'q') {
+      auto start = chrono::high_resolution_clock::now();
+      //frame = webcam.frame();
+      buffer = webcam.get_buffer();
+      memcpy(buf, buffer.data, buffer.size);
+
+      cv::cvtColor(yuyv, out, cv::COLOR_YUV2BGR_YUYV);
+
+      auto stop = chrono::high_resolution_clock::now();
+      auto duration = chrono::duration_cast<chrono::microseconds>(stop-start);
+      cout << "dt = " << std::fixed << std::setprecision(3) << duration.count()/1000.0f << endl;
+      cv::imshow("img", out);
+    }
+    
     return 0;
-    */
 
     /* working code
     cv::cuda::GpuMat src, dst;
@@ -93,7 +119,7 @@ int main(int argc, char** argv)
     unsigned char rgb[640*480*3];
     while (true) { 
       buffer = webcam.get_buffer();
-      buffer_ptr = buffer.data;
+      auto buffer_ptr = buffer.data;
       auto start = chrono::high_resolution_clock::now();
       // conversion takes 9 ms
       v4lconvert_yuyv_to_rgb24((unsigned char *) buffer.data,
@@ -105,7 +131,7 @@ int main(int argc, char** argv)
       auto stop = chrono::high_resolution_clock::now();
       auto duration = chrono::duration_cast<chrono::microseconds>(stop-start);
       cout << "dt = " << std::fixed << std::setprecision(3) << duration.count()/1000.0f << endl;
-      pt = frame.data;
+      auto pt = frame.data;
       //cv::cvtColor(img, out, cv::COLOR_RGB2BGR);
       //out = img;
       cv::Mat tmp;
@@ -117,7 +143,7 @@ int main(int argc, char** argv)
       auto stop = chrono::high_resolution_clock::now();
       auto duration = chrono::duration_cast<chrono::milliseconds>(stop-start);
       cout << "dt = " << duration.count() << endl;
-      pt = frame.data;
+      auto pt = frame.data;
       //cv::cvtColor(img, out, cv::COLOR_RGB2BGR);
       //out = img;
       cv::Mat tmp;
@@ -128,7 +154,7 @@ int main(int argc, char** argv)
     while (int key = cv::waitKey(1) != 'q') {
 
       frame = webcam.frame();
-      pt = frame.data;
+      auto pt = frame.data;
       //cv::cvtColor(img, out, cv::COLOR_RGB2BGR);
       //out = img;
       cv::Mat tmp1, tmp2, tmp3;
@@ -149,7 +175,7 @@ int main(int argc, char** argv)
       continue;
 
       buffer = webcam.get_buffer();
-      buffer_ptr = buffer.data;
+      auto buffer_ptr = buffer.data;
       
       if (++cnt%3 == 0) {  
         cv::cvtColor(yuyv, out, cv::COLOR_YUV2BGR_YUYV);
